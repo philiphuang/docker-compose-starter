@@ -1,0 +1,58 @@
+version: '2'
+
+services:
+
+  wiki-mysql:
+    image: mysql:5.7
+    restart: "always"
+    environment:
+      # docker-compose里面对转义字符是$$
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_USER=wikidb
+      - MYSQL_PASSWORD=
+    volumes:
+      - mysql_volume:/var/lib/mysql
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+
+  wiki-ngnix:
+    image: nginx:stable
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - ./config/nginx/html:/var/www/html
+    ports:
+     - 80:80
+    restart: always
+
+  wiki-backups:
+    image: blacklabelops/volumerize
+    environment:
+      - VOLUMERIZE_SOURCE=/source
+      - VOLUMERIZE_TARGET=rsync://root@10.1.1.1://data/aliyun-backups/
+      - VOLUMERIZE_DUPLICITY_OPTIONS=--ssh-options=-oStrictHostKeyChecking=no --ssh-options=-oUserKnownHostsFile=/dev/null
+      - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
+      - TZ=Asia/Shanghai
+      - DEBUG=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/backups/rsakeys/client:/root/.ssh/id_rsa:ro
+      - cache_volume:/volumerize-cache
+      - backup_volume:/backup
+      # mysql备份
+      - mysql_volume:/source/mysql
+
+volumes:
+  cache_volume:
+    external: false
+  backup_volume:
+    external: false
+  jira_volume:
+    external: false
+  confluence_volume:
+    external: false
+  mysql_volume:
+    external: false
