@@ -12,12 +12,17 @@ services:
       - MYSQL_PASSWORD=
     volumes:
       - mysql_volume:/var/lib/mysql
+      - ./config/mysql_init/:/docker-entrypoint-initdb.d/
+      - ./config/mysql_conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
       options:
         max-size: "500k"
         max-file: "50"
+    networks:
+      db_network:
+        ipv4_address: 192.168.225.2
 
   wiki-ngnix:
     image: nginx:stable
@@ -50,9 +55,16 @@ volumes:
     external: false
   backup_volume:
     external: false
-  jira_volume:
-    external: false
-  confluence_volume:
-    external: false
   mysql_volume:
     external: false
+
+networks:
+  frontend_network:
+    driver: bridge
+  db_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.225.0/24
+          ip_range: 192.168.225.128/25
+          gateway: 192.168.225.1

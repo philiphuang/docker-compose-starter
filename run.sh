@@ -32,6 +32,7 @@ BACKUP_CONTAINER="${PROJECT_NAME}-backups"
 
 MYSQL_CONTAINER="${PROJECT_NAME}-mysql"
 MYSQL_USER="root"
+# 如果密码包含与shell不兼容的字符，需要转码
 MYSQL_PWD=""
 
 # 容器启动时需要建立的外部网络
