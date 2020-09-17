@@ -2,14 +2,72 @@ version: '2'
 
 services:
 
-  wiki-mysql:
-    image: mysql:5.7
+  dctemplate-ngnix:
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:nginx-1.8-alpine
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - ./config/nginx/html:/var/www/html
+    ports:
+     - 80:80
+    restart: always
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      - frontend_network
+
+  dctemplate-springboot:
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:8-openjdk-alpine
+    container_name: dctemplate-springboot
+    restart: "on-failure:3"
+    depends_on:
+      - dctemplate-mysql
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./code/springboot:/data/dctemplate/code/springboot
+    entrypoint: java -jar /data/dctemplate/code/springboot/hello-world-0.1.0.jar
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      - frontend_network
+      - default
+
+  dctemplate-tomcat:
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:tomcat-jre8-alpine
+    volumes:
+      - ./code/tomcat:/usr/local/tomcat/webapps
+    environment:
+      - TZ=Asia/Shanghai
+      - TOMCAT_USERNAME=${TOMCAT_USERNAME}
+      - TOMCAT_PASSWORD=${TOMCAT_PASSWORD}
+    depends_on:
+      - dctemplate-mysql
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      - frontend_network
+      - default
+
+  dctemplate-mysql:
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:mysql5.7
+    container_name: dctemplate-mysql
     restart: "always"
     environment:
-      # docker-compose里面对转义字符是$$
-      - MYSQL_ROOT_PASSWORD=
-      - MYSQL_USER=wikidb
-      - MYSQL_PASSWORD=
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - mysql_volume:/var/lib/mysql
       - ./config/mysql_init/:/docker-entrypoint-initdb.d/
@@ -21,50 +79,56 @@ services:
         max-size: "500k"
         max-file: "50"
     networks:
-      db_network:
-        ipv4_address: 192.168.225.2
+      default:
+        ipv4_address: ${IP_RANGE}.2
 
-  wiki-ngnix:
-    image: nginx:stable
-    volumes:
-      - ./config/nginx/conf.d:/etc/nginx/conf.d
-      - ./config/nginx/html:/var/www/html
-    ports:
-     - 80:80
-    restart: always
-
-  wiki-backups:
-    image: blacklabelops/volumerize
+  dctemplate-backups:
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
     environment:
-      - VOLUMERIZE_SOURCE=/source
-      - VOLUMERIZE_TARGET=rsync://root@10.1.1.1://data/aliyun-backups/
-      - VOLUMERIZE_DUPLICITY_OPTIONS=--ssh-options=-oStrictHostKeyChecking=no --ssh-options=-oUserKnownHostsFile=/dev/null
-      - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
       - TZ=Asia/Shanghai
       - DEBUG=true
+      - VOLUMERIZE_SOURCE=/source
+      - VOLUMERIZE_TARGET=file:///backup
+      - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
+      - VOLUMERIZE_FULL_IF_OLDER_THAN=3D
+      - VOLUMERIZE_CONTAINERS=dctemplate-nginx
+      - MYSQL_USERNAME=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_DUMP_PATH=mysql-backup
+      - DAYS_TO_KEEP_OLD_FILE=5
+      - 'REMOVE_OLD_FILE_IN_DIR=/source/mysql-backup'
     volumes:
+      # volumerize的目录配置
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./config/backups/rsakeys/client:/root/.ssh/id_rsa:ro
       - cache_volume:/volumerize-cache
-      - backup_volume:/backup
+      - ./code/backups/preexecute:/preexecute
+      # 需要还原的文件
       # mysql备份
-      - mysql_volume:/source/mysql
+      - ./backup/mysql-backup:/source/mysql-backup
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      - default
 
 volumes:
   cache_volume:
-    external: false
-  backup_volume:
     external: false
   mysql_volume:
     external: false
 
 networks:
   frontend_network:
-    driver: bridge
-  db_network:
-    ipam:
-      driver: default
-      config:
-        - subnet: 192.168.225.0/24
-          ip_range: 192.168.225.128/25
-          gateway: 192.168.225.1
+    external: false
+  default:
+      driver: bridge
+      ipam:
+        config:
+          - subnet: ${IP_RANGE}.0/24
+            ip_range: ${IP_RANGE}.128/25
+            gateway: ${IP_RANGE}.1

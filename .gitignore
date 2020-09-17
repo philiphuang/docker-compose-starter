@@ -1,0 +1,10 @@
+# 操作系统垃圾文件
+Thumbs.db
+.DS_Store
+
+# 不需要上传的目录
+./logs
+./data
+./temp
+
+# 频繁更新的代码

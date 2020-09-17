@@ -1,0 +1,72 @@
+version: '2'
+
+services:
+
+  dctemplate-mysql:
+    image:   ${DOCKRE_REGISTRY}/philiphzh/helloworld:mysql5.7
+    container_name: dctemplate-mysql
+    restart: "always"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_volume:/var/lib/mysql
+      # - ./config/mysql_init/:/docker-entrypoint-initdb.d/
+      - ./config/mysql_conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      default:
+        ipv4_address: ${IP_RANGE}.2
+
+  dctemplate-restore:
+    container_name: dctemplate-restore
+    image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
+    environment:
+      - TZ=Asia/Shanghai
+      - DEBUG=true
+      - VOLUMERIZE_SOURCE=/source
+      - VOLUMERIZE_TARGET=file:///backup
+      - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
+      - VOLUMERIZE_FULL_IF_OLDER_THAN=3D
+      - MYSQL_USERNAME=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_DUMP_PATH=mysql-backup
+    volumes:
+      # volumerize用到的目录映射
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 备份前运行的脚本
+      - ./code/backups/postexecute:/postexecute
+      - cache_volume:/volumerize-cache
+      - /data/backups/dctemplate-backups:/backup:ro
+
+      # mysql备份
+      - ./backup/mysql-backup:/source/mysql-backup
+
+      # 日志目录，用于删除日志
+      - ./logs/mysql/:/logs/mysql/
+
+    networks:
+      - default
+
+volumes:
+  cache_volume:
+    external: false
+  mysql_volume:
+    external: false
+
+networks:
+  default:
+      driver: bridge
+      ipam:
+        config:
+          - subnet: ${IP_RANGE}.0/24
+            ip_range: ${IP_RANGE}.128/25
+            gateway: ${IP_RANGE}.1

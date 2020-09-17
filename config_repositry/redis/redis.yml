@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  gdzq-redis:
+    image: redis:3.2.11
+    container_name: gdzq-redis
+    restart: "on-failure:3"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - redis_volume:/data
+    networks:
+      db_network:
+        ipv4_address: 192.168.225.3

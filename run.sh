@@ -6,19 +6,20 @@ source "${APP_PATH}/launcher/default.sh"
 ########## 以下是可修改的内容 ##########
 
 # 项目标记符
-PROJECT_NAME="wiki"
+PROJECT_NAME="dctemplate"
 
 # 容器名称
 CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT}
 ${PROJECT_NAME}-mysql
-${PROJECT_NAME}-xxx
+${PROJECT_NAME}-springboot
+${PROJECT_NAME}-tomcat
+
 ${PROJECT_NAME}-ngnix
 ${PROJECT_NAME}-backups
 "
 
 # 操作清单，从第七项开始
 ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
-xxx操作
 备份
 "
 
@@ -27,13 +28,11 @@ xxx操作
 
 DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 
-CONTAINER_PREFIX="${PROJECT_NAME}-"
 BACKUP_CONTAINER="${PROJECT_NAME}-backups"
-
 MYSQL_CONTAINER="${PROJECT_NAME}-mysql"
-MYSQL_USER="root"
+MYSQL_USER=${MYSQL_USER}
 # 如果密码包含与shell不兼容的字符，需要转码
-MYSQL_PWD=""
+MYSQL_PWD=${MYSQL_PASSWORD}
 
 # 容器启动时需要建立的外部网络
 NETWORK_LIST=""
