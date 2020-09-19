@@ -4,9 +4,13 @@ services:
 
   dctemplate-ngnix:
     image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:nginx-1.8-alpine
+    container_name: dctemplate-ngnix
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
-      - ./config/nginx/html:/var/www/html
+      - ./code/nginx:/data/${PROJECT_NAME}/code/nginx
+    environment:
+      - TZ=Asia/Shanghai
+      - PROJECT_NAME=${PROJECT_NAME}
     ports:
      - 80:80
     restart: always
@@ -42,6 +46,7 @@ services:
 
   dctemplate-tomcat:
     image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:tomcat-jre8-alpine
+    container_name: dctemplate-tomcat
     volumes:
       - ./code/tomcat:/usr/local/tomcat/webapps
     environment:
