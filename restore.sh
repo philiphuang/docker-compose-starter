@@ -5,7 +5,7 @@
 # 是否允许以root身份运行
 ALLOW_ROOT=true
 
-DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose-restore.yml"
+DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f restore.yml"
 
 CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT}
 ${PROJECT_NAME}-mysql

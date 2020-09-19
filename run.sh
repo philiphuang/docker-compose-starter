@@ -5,10 +5,10 @@ source "${APP_PATH}/.env"
 source "${APP_PATH}/launcher/default.sh"
 ########## 以下是可修改的内容 ##########
 
-# 项目ID字符串
+# TODO：项目ID字符串
 PROJECT_NAME="dctemplate"
 
-# 容器名称
+# TODO：容器名称
 CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT}
 ${PROJECT_NAME}-mysql
 ${PROJECT_NAME}-springboot
@@ -22,7 +22,7 @@ ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
 备份
 "
 
-# 是否允许以root身份运行
+# TODO：是否允许以root身份运行
 ALLOW_ROOT=false
 
 DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"

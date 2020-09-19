@@ -12,6 +12,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - mysql_volume:/var/lib/mysql
+      # 不需要挂接初始化目录
       # - ./config/mysql_init/:/docker-entrypoint-initdb.d/
       - ./config/mysql_conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
     logging:
@@ -25,8 +26,8 @@ services:
         ipv4_address: ${IP_RANGE}.2
 
   dctemplate-restore:
-    container_name: dctemplate-restore
     image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
+    container_name: dctemplate-restore
     environment:
       - TZ=Asia/Shanghai
       - DEBUG=true
@@ -37,22 +38,22 @@ services:
       - MYSQL_USERNAME=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_HOST=${MYSQL_HOST}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      # 多个数据库之间用空格分隔
+      - 'MYSQL_DATABASE=${MYSQL_DATABASE}'
       - MYSQL_DUMP_PATH=mysql-backup
     volumes:
-      # volumerize用到的目录映射
+      # [volumerize用到的目录映射]
       - /var/run/docker.sock:/var/run/docker.sock
-      # 备份前运行的脚本
-      - ./code/backups/postexecute:/postexecute
       - cache_volume:/volumerize-cache
-      - /data/backups/dctemplate-backups:/backup:ro
+      # 还原后运行的脚本
+      - ./code/backups/postexecute:/postexecute
 
-      # mysql备份
+      # [备份文件的来源]
+      - ./backup/${PROJECT_NAME}-backup/:/backup
+
+      # mysql备份，保留最近x天的文件，x=DAYS_TO_KEEP_OLD_FILE
       - ./backup/mysql-backup:/source/mysql-backup
-
-      # 日志目录，用于删除日志
-      - ./logs/mysql/:/logs/mysql/
-
+      # 以及其他目录都挂在/source目录下
     networks:
       - default
 

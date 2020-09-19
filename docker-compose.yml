@@ -10,7 +10,6 @@ services:
       - ./code/nginx:/data/${PROJECT_NAME}/code/nginx
     environment:
       - TZ=Asia/Shanghai
-      - PROJECT_NAME=${PROJECT_NAME}
     ports:
      - 80:80
     restart: always
@@ -32,8 +31,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ./code/springboot:/data/dctemplate/code/springboot
-    entrypoint: java -jar /data/dctemplate/code/springboot/hello-world-0.1.0.jar
+      - ./code/springboot:/data/${PROJECT_NAME}/code/springboot
+    # TODO 修改jar文件名
+    entrypoint: java -jar /data/${PROJECT_NAME}/code/springboot/hello-world-0.1.0.jar
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -89,6 +89,7 @@ services:
 
   dctemplate-backups:
     image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
+    container_name: dctemplate-backups
     environment:
       - TZ=Asia/Shanghai
       - DEBUG=true
@@ -100,24 +101,27 @@ services:
       - MYSQL_USERNAME=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_HOST=${MYSQL_HOST}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      # 多个数据库之间用空格分隔
+      - 'MYSQL_DATABASE=${MYSQL_DATABASE}'
       - MYSQL_DUMP_PATH=mysql-backup
       - DAYS_TO_KEEP_OLD_FILE=5
-      - 'REMOVE_OLD_FILE_IN_DIR=/source/mysql-backup'
+      - 'REMOVE_OLD_FILE_IN_DIR=/source/mysql-backup /logs/mysql'
     volumes:
-      # volumerize的目录配置
+      # [volumerize用到的目录映射]
       - /var/run/docker.sock:/var/run/docker.sock
       - cache_volume:/volumerize-cache
+      # 备份前运行的脚本
       - ./code/backups/preexecute:/preexecute
-      # 需要还原的文件
-      # mysql备份
+      # TODO：备份到哪里
+      - ./backup/${PROJECT_NAME}-backup/:/backup
+
+      # [需要备份的文件]
+      # mysql备份，保留最近x天的文件，x=DAYS_TO_KEEP_OLD_FILE
       - ./backup/mysql-backup:/source/mysql-backup
-    logging:
-      # limit logs retained on host to 25MB
-      driver: "json-file"
-      options:
-        max-size: "500k"
-        max-file: "50"
+      # 以及其他目录都挂在/source目录下
+
+      # [需要清理旧文件的目录]
+      - ./logs/mysql:/logs/mysql
     networks:
       - default
 
