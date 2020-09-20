@@ -15,7 +15,8 @@ ${PROJECT_NAME}-restore
 ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
 全量还原
 查看备份信息
-删除3天以前的备份"
+删除3天以前的备份
+"
 
 RESTORE_CONTAINER="${PROJECT_NAME}-restore"
 

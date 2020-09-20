@@ -2,9 +2,9 @@ version: '2'
 
 services:
 
-  dctemplate-mysql:
+  dcstarter-mysql:
     image:   ${DOCKRE_REGISTRY}/philiphzh/helloworld:mysql5.7
-    container_name: dctemplate-mysql
+    container_name: dcstarter-mysql
     restart: "always"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
@@ -25,9 +25,9 @@ services:
       default:
         ipv4_address: ${IP_RANGE}.2
 
-  dctemplate-restore:
+  dcstarter-restore:
     image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
-    container_name: dctemplate-restore
+    container_name: dcstarter-restore
     environment:
       - TZ=Asia/Shanghai
       - DEBUG=true
