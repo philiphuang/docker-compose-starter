@@ -6,7 +6,18 @@ source "${APP_PATH}/.env"
 
 ########## 以下是可修改的内容 ##########
 
-# TODO：容器名称
+# 是否允许以root身份运行
+ALLOW_ROOT=true
+# ALLOW_ROOT=false
+
+DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
+BACKUP_CONTAINER="${PROJECT_NAME}-backups"
+MYSQL_CONTAINER="${PROJECT_NAME}-mysql"
+
+# 容器启动时需要建立的外部网络
+NETWORK_LIST=""
+
+# 容器名称
 CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT}
 ${CONTAINER_LIST_TEXT}
 "
@@ -15,16 +26,6 @@ ${CONTAINER_LIST_TEXT}
 ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
 ${ACTION_LIST_TEXT}
 "
-
-# TODO：是否允许以root身份运行
-ALLOW_ROOT=false
-
-DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
-BACKUP_CONTAINER="${PROJECT_NAME}-backups"
-MYSQL_CONTAINER="${PROJECT_NAME}-mysql"
-
-# 容器启动时需要建立的外部网络
-NETWORK_LIST=""
 
 # 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是7
 func7(){
