@@ -1,4 +1,0 @@
-[submodule "launcher"]
-	path = launcher
-	url = https://github.com/philiphuang/docker-launcher
-	branch = master
