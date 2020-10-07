@@ -3,7 +3,7 @@
 ```
 我有故事，你有酒吗？
 
-如果你有Docker-Compose.yml，我有一套运行Docker-Compose脚本！
+如果你有Docker-Compose.yml，我有跑Docker-Compose脚本！
 ```
 
 DC-Starter是给前后端攻城狮用的Docker-Compose管理工具，手敲命令单行不超过10个字符。
@@ -14,17 +14,17 @@ DC-Starter是给前后端攻城狮用的Docker-Compose管理工具，手敲命�
 
 做开发的同学经常要搭建本地运行环境，虽然Docker可以简化工作，但也带来了一堆要记忆的命令和参数。
 
-DC-Starter的目标是要降低部署和维护后台应用的总拥有成本：
+  1. 如果你不想手敲这段命令行： ``` $ docker run -it --network some-network --rm mysql mysql -hsome-mysql -uexample-user -p ```。
+
+  2. 或者NAS稳定运行三个月后，重启，你已经想不起三个月前启动jellyfin的命令： ``` $ docker run -d --name jellyfin -v /volume1/docker/jellyfin/config:/config -v /volume1/docker/je-llyfin/cache:/cache -v /volume1/video:/video -p 8096:8096 -p 8920:8920 --device=/dev/dri/renderD128 --restart unless-stopped jellyfin/jellyfin ```
+
+  3. 你就找对地方了。
+
+DC-Starter的目标是要降低部署、维护后台应用的操作和记忆成本：
 
   1. 开箱即用：帮助你快速把后台应用拉起来，可以搭建开发环境、测试环境、或者现网环境，或者家里的NAS想跑个jellyfin，aria2，也是十分方便；
 
   2. 低成本：以命令行交互菜单的方式进行管理，降低记忆和敲打Docker-Compose命令的负担。
-
-     1. 如果你不想手敲这段命令行： ``` $ docker run -it --network some-network --rm mysql mysql -hsome-mysql -uexample-user -p ```。
-
-     1. 或者NAS稳定运行三个月后，重启，你已经想不起三个月前启动jellyfin的命令： ``` $ docker run -d --name jellyfin -v /volume1/docker/jellyfin/config:/config -v /volume1/docker/je-llyfin/cache:/cache -v /volume1/video:/video -p 8096:8096 -p 8920:8920 --device=/dev/dri/renderD128 --restart unless-stopped jellyfin/jellyfin ```
-
-     2. 你就找对地方了。
 
 ## 快速开始
 
