@@ -3,8 +3,8 @@ Thumbs.db
 .DS_Store
 
 # 不需要上传的目录
-./logs
-./data
-./temp
+logs/
+data/
+temp/
 
 # 频繁更新的代码

@@ -24,7 +24,7 @@ ${CONTAINER_LIST_TEXT}
 
 # 操作清单，从第七项开始
 ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
-${ACTION_LIST_TEXT}
+备份
 "
 
 # 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是7
