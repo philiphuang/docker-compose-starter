@@ -8,7 +8,7 @@
 
 DC-Starter是给前后端攻城狮用的Docker-Compose管理工具，手敲命令单行不超过10个字符。
 
-![主菜单](./docs/main-menu.png)
+![主菜单](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/main-menu.png)
 
 ## 前言
 
@@ -44,15 +44,15 @@ DC-Starter的目标是要降低部署、维护后台应用的操作和记忆成�
     ```
     进入交互菜单，选择 ```a``` -> ```b``` ，启动所有服务。（第一次运行会经历漫长的拉取镜像过程，请耐心等候。）
 
-    ![首次启动](docs/first-start.png)
+    ![首次启动](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/first-start.png)
 
     当你看到下面的文字，你已经喜提一个三层结构的应用，nginx + (tomcat，srpingboot) + mysql
 
-    ![首次启动完成](docs/done-first-start.png)
+    ![首次启动完成](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/done-first-start.png)
 
 3. 打开浏览器访问宿主机，例如：[http://localhost/](http://localhost/)
 
-    ![主页](docs/home-page.png)
+    ![主页](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/home-page.png)
 
 4. 最后，关掉所有服务（交互菜单选```a``` -> ```c```），去./code目录下替换你的jar和war，重新执行第二步，你就可以把你的应用跑起来。
 
@@ -68,7 +68,7 @@ DC-Starter对Docker-Compose的命令进行封装，已经包含基本的启动�
 
 老规矩，所有操作都从 ```./run.sh``` 开始
 
-![主菜单](./docs/main-menu.png)
+![主菜单](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/main-menu.png)
 
     a) 对本项目所有服务进行管理，包括启动，关闭，重启
 
