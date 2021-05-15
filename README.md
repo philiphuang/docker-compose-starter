@@ -2,7 +2,7 @@
 
 DC-Starter帮你运行Docker-Compose的懒人脚本，不用死背命令，一键启动、关闭容器、查看日志、检查容器状态。
 
-![主菜单](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/main-menu.png)
+![主菜单](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/done-first-start.png)
 
 ## 前言
 
@@ -32,7 +32,7 @@ DC-Starter帮你运行Docker-Compose的懒人脚本，不用死背命令，一�
     ```
     进入交互菜单，选择 ```a``` -> ```b``` ，启动所有服务。（第一次运行会经历漫长的拉取镜像过程，请耐心等候。）
 
-    ![首次启动](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/first-start.png)
+    ![首次启动](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/first-start.png)
 
     当你看到下面的文字，你已经喜提一个三层结构的应用，nginx + (tomcat，srpingboot) + mysql
 
@@ -40,7 +40,7 @@ DC-Starter帮你运行Docker-Compose的懒人脚本，不用死背命令，一�
 
 3. 打开浏览器访问宿主机，例如：[http://localhost/](http://localhost/)
 
-    ![主页](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/home-page.png)
+    ![主页](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/home-page.png)
 
 4. 最后，关掉所有服务（交互菜单选```a``` -> ```c```），去./code目录下替换你的jar和war，重新执行第二步，你就可以把你的应用跑起来。
 
@@ -56,7 +56,7 @@ DC-Starter对Docker-Compose的命令进行封装，已经包含基本的启动�
 
 老规矩，所有操作都从 ```./run.sh``` 开始
 
-![主菜单](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/main-menu.png)
+![主菜单](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/main-menu.png)
 
     a) 对所有服务执行：启动，关闭，重启
 
@@ -112,5 +112,5 @@ DC-Starter对Docker-Compose的命令进行封装，已经包含基本的启动�
 2. config_repositry目录存放了一些常用的配置模板，如redis，可按需食用。
 
 ## 使用案例
- 1. [运行rrshare](https://github.com/philiphuang/rrshare)；
- 2. [运行jellyfin](https://github.com/philiphuang/jellyfin)，Jellyfin是一个开源的媒体管理和播放系统，Emby和Plex的免费替代品。
+ 1. 运行rrshare容器：[Github](https://github.com/philiphuang/rrshare)，[Gitee](https://gitee.com/philiphuang/rrshare)
+ 2. 运行jellyfin，Jellyfin是一个开源的媒体管理和播放系统，Emby和Plex的免费替代品。[Github](https://github.com/philiphuang/jellyfin)，[Gitee](https://gitee.com/philiphuang/jellyfin)
