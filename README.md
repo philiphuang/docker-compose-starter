@@ -36,7 +36,7 @@ DC-Starter帮你运行Docker-Compose的懒人脚本，不用死背命令，一�
 
     当你看到下面的文字，你已经喜提一个三层结构的应用，nginx + (tomcat，srpingboot) + mysql
 
-    ![首次启动完成](https://github.com/philiphuang/docker-compose-starter/blob/master/docs/done-first-start.png)
+    ![首次启动完成](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/done-first-start.png)
 
 3. 打开浏览器访问宿主机，例如：[http://localhost/](http://localhost/)
 
