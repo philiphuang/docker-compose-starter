@@ -25,6 +25,7 @@ ${CONTAINER_LIST_TEXT}
 # 操作清单，从第七项开始
 ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
 备份
+初始化配置
 "
 
 # 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是7
@@ -37,7 +38,7 @@ func7(){
 }
 
 func8(){
-    echo "function 8"
+    ${DCC_COMMAND} run ${PROJECT_NAME}-init
 }
 
 ########## 以上是可修改的内容 ##########

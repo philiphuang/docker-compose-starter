@@ -3,8 +3,7 @@ version: '2'
 services:
 
   dcstarter-ngnix:
-    # image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:nginx-1.8-alpine
-    image: daocloud.io/library/nginx:1.19.0-alpine
+    image: dnginx:1.19.0-alpine
     container_name: dcstarter-ngnix
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
@@ -27,8 +26,7 @@ services:
       - frontend_network
 
   dcstarter-springboot:
-    # image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:8-openjdk-alpine
-    image: daocloud.io/library/java:openjdk-8-jre-alpine
+    image: java:openjdk-8-jre-alpine
     container_name: dcstarter-springboot
     restart: "on-failure:3"
     depends_on:
@@ -50,8 +48,7 @@ services:
       - default
 
   dcstarter-tomcat:
-    # image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:tomcat-jre8-alpine
-    image: daocloud.io/library/tomcat:8-jre8-alpine
+    image: tomcat:8-jre8-alpine
     container_name: dcstarter-tomcat
     volumes:
       - ./code/tomcat:/usr/local/tomcat/webapps
@@ -72,8 +69,7 @@ services:
       - default
 
   dcstarter-mysql:
-    # image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:mysql5.7
-    image: daocloud.io/library/mysql:5.7
+    image: mysql:5.7
     container_name: dcstarter-mysql
     restart: "always"
     environment:
@@ -94,9 +90,15 @@ services:
       default:
         ipv4_address: ${IP_RANGE}.2
 
+  dcstarter-init:
+    image: philiphuang/config-injector:latest
+    volumes:
+      - ./.env:/.env
+      - ./config/mysql_init_template:/input/mysql_init
+      - ./config/mysql_init:/output/mysql_init
+
   dcstarter-backups:
-    # image: ${DOCKRE_REGISTRY}/philiphzh/helloworld:volumerize
-    image: index.docker.io/blacklabelops/volumerize:1.6
+    image: blacklabelops/volumerize:1.6
     container_name: dcstarter-backups
     environment:
       - TZ=Asia/Shanghai
