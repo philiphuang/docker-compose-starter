@@ -88,13 +88,15 @@ showLogs(){
 enterShell(){
         dockerResult=$(select_docker)
         if [ -n "${dockerResult}" ]; then
-            $DCC_COMMAND exec ${dockerResult} sh
+            dockerResult=$($DCC_COMMAND ps -q "${dockerResult}")
+            docker exec -it "${dockerResult}" bash && docker exec -it "${dockerResult}" sh
         fi
 }
 
 # 进入mysql的命令行
 enterMySQLShell(){
-    $DCC_COMMAND exec ${MYSQL_CONTAINER} mysql -u${MYSQL_USER} -p"${MYSQL_PASSWORD}"
+    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_CONTAINER}")
+    docker exec -it "${dockerResult}" mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}"
 }
 
 # 查看整个服务的状态和启动时间
@@ -210,6 +212,7 @@ go(){
 
         case "$result" in
             0 ) byebye;;
+            "" ) continue;;
             * ) declare -pF | grep -q "$fn_name" && ${fn_name};;
         esac
     done
