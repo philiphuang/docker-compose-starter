@@ -3,7 +3,7 @@ version: '2'
 services:
 
   dcstarter-ngnix:
-    image: dnginx:1.19.0-alpine
+    image: nginx:alpine
     container_name: dcstarter-ngnix
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d

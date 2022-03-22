@@ -12,6 +12,14 @@ ALLOW_ROOT=false
 
 NETWORK_LIST=""
 
+green(){
+    echo -e "\033[32m$1\033[0m"
+}
+
+red(){
+    echo -e "\033[31m$1\033[0m"
+}
+
 func1(){
     restartWholeService
 }
@@ -101,21 +109,27 @@ enterMySQLShell(){
 
 # 查看整个服务的状态和启动时间
 showAllContainer(){
-    $DCC_COMMAND ps
-    echo
-    echo "容器名称     IP    端口"
-    echo "------------------------------------------------------------------------------------------"
-    docker inspect --format='{{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $($DCC_COMMAND ps -q)
-}
+    result=$($DCC_COMMAND ps)
+    # result需带双信号才保留回车
+    if [[ 2 -eq $(echo "$result" | wc -l) ]]; then
+        red "没有容器运行"
+    else
+        echo "$result"
+        echo
+        echo "容器名称     IP    端口"
+        echo "------------------------------------------------------------------------------------------"
+        docker inspect --format='{{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $($DCC_COMMAND ps -q)
+    fi
+    }
 
 nothing_pressed(){
     # command(s) to be run if nothing is pressed after a certain time interval
-    echo "没接收到输入，"
+    red "没接收到输入，"
     byebye
 }
 
 byebye(){
-    echo "程序已退出。"
+    red "程序已退出。"
     exit;
 }
 
@@ -146,7 +160,7 @@ selectWithDefault() {
         echo >&2
         [[ -z $index ]] && break  # empty input
         index=$((`printf "%d" "'$index"`-97+1))
-        (( index >= 1 && index <= numItems )) 2>/dev/null || { echo "输入不正确，如需选择退出，请选择返回上一级." >&2; continue; }
+        (( index >= 1 && index <= numItems )) 2>/dev/null || { red "输入不正确，如需选择退出，请选择返回上一级." >&2; continue; }
         break
     done
 
@@ -195,13 +209,13 @@ createGlobalNetwork(){
 }
 
 showAllContainerIP(){
-    echo "这个函数"
+    red "这个函数已经废弃，请使用showAllContainer"
 }
 
 go(){
     # 为安全起见，不允许root帐号运行
     if [ $ALLOW_ROOT = false ] && [ "root" = "$(whoami)" ] ; then
-        echo '不允许root帐号运行'
+        red '不允许root帐号运行'
         exit
     fi
 

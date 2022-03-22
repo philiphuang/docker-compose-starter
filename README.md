@@ -1,6 +1,6 @@
 # Docker-Compose Starter
 
-DC-Starter帮你运行Docker-Compose的懒人脚本，不用死背命令，一键启动、关闭容器、查看日志、检查容器状态。
+DC-Starter是帮你运行Docker-Compose的懒人脚本，不用死背命令，一键启动、关闭容器、查看日志、检查容器状态。
 
 ![主菜单](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/done-first-start.png)
 
