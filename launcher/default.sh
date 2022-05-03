@@ -1,3 +1,4 @@
+#!/bin/bash
 DEFAULT_CONTAINER_LIST_TEXT="请选择对那个应用进行操作，请输入数字："
 
 DEFAULT_ACTION_LIST_TEXT="请选择要进行的操作，请输入小写英文字母：
@@ -97,7 +98,11 @@ enterShell(){
         dockerResult=$(select_docker)
         if [ -n "${dockerResult}" ]; then
             dockerResult=$($DCC_COMMAND ps -q "${dockerResult}")
-            docker exec -it "${dockerResult}" bash && docker exec -it "${dockerResult}" sh
+            # 如果执行bash失败，则压制错误信息，然后执行sh
+            docker exec -it "${dockerResult}" bash 2 > /dev/null
+            if [ 0 -ne $? ]; then
+                docker exec -it "${dockerResult}" sh
+            fi
         fi
 }
 
@@ -116,9 +121,9 @@ showAllContainer(){
     else
         echo "$result"
         echo
-        echo "容器名称     IP    端口"
+        echo "进程ID     容器名称     IP"
         echo "------------------------------------------------------------------------------------------"
-        docker inspect --format='{{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $($DCC_COMMAND ps -q)
+        docker inspect --format='{{ .State.Pid }}  {{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $($DCC_COMMAND ps -q)
     fi
     }
 
@@ -148,7 +153,7 @@ selectWithDefault() {
 
     printf "\n%s\n" "=============================" >&2
     # Print numbered menu items, based on the arguments passed.
-    for item in ${@:2}; do         # Short for: for item in "$@"; do
+    for item in "${@:2}"; do         # Short for: for item in "$@"; do
       printf '%s ) %s\n' "${indec[$((i++))]}" "$item"
     done >&2 # Print to stderr, as `select` does.
 
