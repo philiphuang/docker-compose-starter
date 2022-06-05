@@ -8,6 +8,7 @@ DEFAULT_ACTION_LIST_TEXT="请选择要进行的操作，请输入小写英文字
 进入容器的shell
 进入mysql的命令行
 容器的状态、启动时间、IP、端口、镜像名称
+重启本脚本
 "
 ALLOW_ROOT=false
 
@@ -45,10 +46,11 @@ func6(){
     showAllContainer
 }
 
-# ===========以下代码不需要修改
-func0(){
-    byebye
+func7(){
+    red "重新载入所有Shell脚本"
+    $(basename $0) && exit 255
 }
+# ===========以下代码不需要修改
 
 # 整个服务的启动、关闭、重启
 restartWholeService(){
@@ -109,34 +111,36 @@ enterShell(){
 # 进入mysql的命令行
 enterMySQLShell(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_CONTAINER}")
-    docker exec -it "${dockerResult}" mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}"
+    # docker中mysql容器查询时中文乱码解决方法 https://blog.csdn.net/weixin_44760538/article/details/106901383
+    docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}"
+}
+
+# 执行mysql的命令行，参数：数据库，SQL命令
+execSQL(){
+    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_CONTAINER}")
+    docker exec -i "${dockerResult}" mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" ${1} <<EOF
+    $2
+EOF
 }
 
 # 查看整个服务的状态和启动时间
 showAllContainer(){
     result=$($DCC_COMMAND ps)
     # result需带双信号才保留回车
-    if [[ 2 -eq $(echo "$result" | wc -l) ]]; then
+    if [[ 1 -eq $(echo "$result" | wc -l) ]]; then
         red "没有容器运行"
     else
         echo "$result"
+        if [[ true = $reportMemoryUsage ]]; then
+            echo
+            docker stats  --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $($DCC_COMMAND ps -q)
+        fi
         echo
         echo "进程ID     容器名称     IP"
         echo "------------------------------------------------------------------------------------------"
-        docker inspect --format='{{ .State.Pid }}  {{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $($DCC_COMMAND ps -q)
+        docker inspect --format="{{ .State.Pid }}  {{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}" $($DCC_COMMAND ps -q)
     fi
     }
-
-nothing_pressed(){
-    # command(s) to be run if nothing is pressed after a certain time interval
-    red "没接收到输入，"
-    byebye
-}
-
-byebye(){
-    red "程序已退出。"
-    exit;
-}
 
 # 参考：https://stackoverflow.com/questions/42789273/bash-choose-default-from-case-when-enter-is-pressed-in-a-select-prompt/42790075#42790075
 
@@ -221,7 +225,7 @@ go(){
     # 为安全起见，不允许root帐号运行
     if [ $ALLOW_ROOT = false ] && [ "root" = "$(whoami)" ] ; then
         red '不允许root帐号运行'
-        exit
+        return
     fi
 
     cd "${APP_PATH}"
@@ -230,10 +234,11 @@ go(){
         fn_name="func${result}"
 
         case "$result" in
-            0 ) byebye;;
+            0 ) red "程序已退出。";break;;
+            # 参考：https://askubuntu.com/questions/356800/how-to-completely-restart-script-from-inside-the-script-itself
+            7 ) red "重新载入所有Shell脚本"; exec $(basename $0) && exit 255;;
             "" ) continue;;
             * ) declare -pF | grep -q "$fn_name" && ${fn_name};;
         esac
     done
 }
-

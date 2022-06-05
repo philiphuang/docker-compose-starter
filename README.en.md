@@ -1,5 +1,5 @@
 # docker-launcher
-Docker Compose project template, including launching scripts and project template.
+Docker Compose project Starter, including launching scripts and project template.
   - launching scripts
     1. easy-to-use menu style management, no need to remember docker-compose commands.
     1. build-in management script, like start/stop containers or entering docker shell.
