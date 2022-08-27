@@ -2,9 +2,9 @@ version: '2'
 
 services:
 
-  dcstarter-ngnix:
+  dcstarter-nginx:
     image: nginx:alpine
-    container_name: dcstarter-ngnix
+    container_name: dcstarter-nginx
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - ./code/nginx:/data/${PROJECT_NAME}/code/nginx
