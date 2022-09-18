@@ -110,7 +110,7 @@ enterShell(){
 
 # 进入mysql的命令行
 enterMySQLShell(){
-    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_CONTAINER}")
+    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
     # docker中mysql容器查询时中文乱码解决方法 https://blog.csdn.net/weixin_44760538/article/details/106901383
     if [[ true = $CONNECT_MYSQL_AS_ROOT ]]; then
         docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}"
@@ -121,7 +121,7 @@ enterMySQLShell(){
 
 # 执行mysql的命令行，参数：数据库，SQL命令
 execSQL(){
-    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_CONTAINER}")
+    dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
     docker exec -i "${dockerResult}" mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" ${1} <<EOF
     $2
 EOF
