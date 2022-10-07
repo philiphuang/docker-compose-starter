@@ -4,13 +4,17 @@ APP_PATH=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
 source "${APP_PATH}/launcher/default.sh"
 source "${APP_PATH}/.env"
 
+DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 ########## 以下是可修改的内容 ##########
+
+# 加载子模块
+subModules=""
+laodSubModules "$subModules"
 
 # 是否允许以root身份运行
 ALLOW_ROOT=true
 # ALLOW_ROOT=false
 
-DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 BACKUP_CONTAINER="${PROJECT_NAME}-backups"
 MYSQL_CONTAINER="${PROJECT_NAME}-mysql"
 
@@ -28,8 +32,8 @@ ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST_TEXT}
 初始化配置
 "
 
-# 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是7
-func7(){
+# 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是8
+func8(){
     echo '准备开始备份，如不能马上停止服务的，请在10秒内^C'
     sleep 10
     set -x
@@ -37,7 +41,7 @@ func7(){
     set +x
 }
 
-func8(){
+func9(){
     ${DCC_COMMAND} run ${PROJECT_NAME}-init
 }
 

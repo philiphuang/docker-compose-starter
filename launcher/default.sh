@@ -221,8 +221,15 @@ createGlobalNetwork(){
     done
 }
 
-showAllContainerIP(){
-    red "这个函数已经废弃，请使用showAllContainer"
+# 加载子模块的代码
+laodSubModules(){
+    # set -x
+    for dir in ${1}; do
+        [[ -f $dir/docker-compose.yml ]] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
+        [[ -f $dir/.env ]] && source $dir/.env
+        [[ -f $dir/run.sh ]] && source $dir/run.sh
+    done
+    # set +x
 }
 
 go(){
