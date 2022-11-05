@@ -122,9 +122,16 @@ enterMySQLShell(){
 # 执行mysql的命令行，参数：数据库，SQL命令
 execSQL(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
-    docker exec -i "${dockerResult}" mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" ${1} <<EOF
-    $2
+    if [[ true = $CONNECT_MYSQL_AS_ROOT ]]; then
+        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" ${1} <<EOF
+        $2
 EOF
+    else
+        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" ${1} <<EOF
+        $2
+EOF
+    fi
+
 }
 
 # 查看整个服务的状态和启动时间
@@ -135,7 +142,7 @@ showAllContainer(){
         red "没有容器运行"
     else
         echo "$result"
-        if [[ true = $reportMemoryUsage ]]; then
+        if [[ true = $REPORT_MEMORY_USAGE ]]; then
             echo
             docker stats  --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $($DCC_COMMAND ps -q)
         fi
@@ -209,13 +216,14 @@ select_docker(){
 # Will wait for this interval, then run default action
 # 参考：https://superuser.com/questions/161659/framework-for-interactive-shell-script-bash
 
-# 暂不使用
+# 检查缺失的全局网路，并建立之
 createGlobalNetwork(){
     for nw in $GLOBAL_NETWORK; do
         if docker network inspect --format {{.Name}} $(docker network ls -q) | grep -qi $nw; then
-            echo "network $nw already existed since $(docker network inspect --format {{.Created}} $nw)"
+            # echo "全局网络“$nw”已存在，建于$(docker network inspect --format {{.Created}} $nw)"
+            echo -n
         else
-            echo "newly created network $nw with following id:"
+            echo "新建全局网络：${nw} ，ID为:"
             docker network create $nw
         fi
     done
@@ -223,13 +231,11 @@ createGlobalNetwork(){
 
 # 加载子模块的代码
 laodSubModules(){
-    # set -x
     for dir in ${1}; do
         [[ -f $dir/docker-compose.yml ]] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
         [[ -f $dir/.env ]] && source $dir/.env
         [[ -f $dir/run.sh ]] && source $dir/run.sh
     done
-    # set +x
 }
 
 go(){
@@ -240,6 +246,8 @@ go(){
     fi
 
     cd "${APP_PATH}"
+    laodSubModules "$subModules"
+
     while true; do
         result=$(selectByIndex "${ACTION_LIST_TEXT}")
         fn_name="func${result}"

@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+
+  nginx:
+    volumes:
+      - ./prj-dashboard/flame.conf:/etc/nginx/conf.d/${PROJECT_NAME}/flame.conf
+
+  # 参考 https://github.com/pawelmalak/flame
+  flame:
+    image: pawelmalak/flame:latest
+    volumes:
+      - ./data/flame:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+       - PASSWORD=${APP_ADMIN_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - default
+      - frontend_network

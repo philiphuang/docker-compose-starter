@@ -8,8 +8,7 @@ DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 ########## 以下是可修改的内容 ##########
 
 # 加载子模块
-subModules=""
-laodSubModules "$subModules"
+subModules="prj-dashboard"
 
 # 是否允许以root身份运行
 ALLOW_ROOT=true

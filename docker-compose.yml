@@ -2,17 +2,22 @@ version: '2'
 
 services:
 
-  dcstarter-nginx:
-    image: nginx:alpine
-    container_name: dcstarter-nginx
+  nginx:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-nginx
     volumes:
-      - ./config/nginx/conf.d:/etc/nginx/conf.d
+    # 默认配置
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+    # 本项目的配置
+      - ./config/nginx/conf.d/${PROJECT_NAME}.conf:/etc/nginx/conf.d/${PROJECT_NAME}.conf
+      - ./config/nginx/conf.d/${PROJECT_NAME}:/etc/nginx/conf.d/${PROJECT_NAME}
       - ./code/nginx:/data/${PROJECT_NAME}/code/nginx
     environment:
       - TZ=Asia/Shanghai
     depends_on:
-      - dcstarter-springboot
-      - dcstarter-tomcat
+      - springboot
+      - tomcat
     ports:
      - 80:80
     restart: always
@@ -25,12 +30,12 @@ services:
     networks:
       - frontend_network
 
-  dcstarter-springboot:
+  springboot:
     image: java:openjdk-8-jre-alpine
-    container_name: dcstarter-springboot
+    container_name: ${PROJECT_NAME}-springboot
     restart: "on-failure:3"
     depends_on:
-      - dcstarter-mysql
+      - mysql-user
     environment:
       - TZ=Asia/Shanghai
     volumes:
@@ -47,17 +52,17 @@ services:
       - frontend_network
       - default
 
-  dcstarter-tomcat:
+  tomcat:
     image: tomcat:8-jre8-alpine
-    container_name: dcstarter-tomcat
+    container_name: ${PROJECT_NAME}-tomcat
     volumes:
       - ./code/tomcat:/usr/local/tomcat/webapps
     environment:
       - TZ=Asia/Shanghai
-      - TOMCAT_USERNAME=${TOMCAT_USERNAME}
-      - TOMCAT_PASSWORD=${TOMCAT_PASSWORD}
+      - TOMCAT_USERNAME=${APP_ADMIN_USERNAME}
+      - TOMCAT_PASSWORD=${APP_ADMIN_PASSWORD}
     depends_on:
-      - dcstarter-mysql
+      - mysql-user
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -68,9 +73,9 @@ services:
       - frontend_network
       - default
 
-  dcstarter-mysql:
-    image: mysql:5.7
-    container_name: dcstarter-mysql
+  mysql-app:
+    image: mysql:8
+    container_name: ${PROJECT_NAME}-mysql-app
     restart: "always"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
@@ -78,8 +83,8 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - mysql_volume:/var/lib/mysql
-      - ./config/mysql_init/:/docker-entrypoint-initdb.d/
-      - ./config/mysql_conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+      - ./config/mysql_app_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
+      - ./config/mysql_app_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -90,16 +95,40 @@ services:
       default:
         ipv4_address: ${IP_RANGE}.2
 
-  dcstarter-init:
+  mysql-user:
+    image: mysql:8
+    container_name: ${PROJECT_NAME}-mysql-user
+    restart: "always"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_volume:/var/lib/mysql
+      - ./config/mysql_user_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
+      - ./config/mysql_user_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      default:
+        ipv4_address: ${IP_RANGE}.201
+
+  init:
     image: philiphuang/config-injector:latest
     volumes:
       - ./.env:/.env
-      - ./config/mysql_init_template:/input/mysql_init
-      - ./config/mysql_init:/output/mysql_init
+      - ./config/mysql_init_template:/input/mysql_user_init
+      - ./config/mysql_init_template:/input/mysql_app_init
+      - ./config/mysql_user_init:/output/mysql_user_init
+      - ./config/mysql_app_init:/output/mysql_app_init
 
-  dcstarter-backups:
+  backups:
     image: blacklabelops/volumerize:1.6
-    container_name: dcstarter-backups
+    container_name: ${PROJECT_NAME}-backups
     environment:
       - TZ=Asia/Shanghai
       - DEBUG=true
@@ -107,7 +136,7 @@ services:
       - VOLUMERIZE_TARGET=file:///backup
       - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
       - VOLUMERIZE_FULL_IF_OLDER_THAN=3D
-      - VOLUMERIZE_CONTAINERS=dcstarter-nginx
+      - VOLUMERIZE_CONTAINERS=${PROJECT_NAME}-nginx
       - MYSQL_USERNAME=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_HOST=${MYSQL_HOST}
@@ -149,5 +178,3 @@ networks:
       ipam:
         config:
           - subnet: ${IP_RANGE}.0/24
-            ip_range: ${IP_RANGE}.128/25
-            gateway: ${IP_RANGE}.1

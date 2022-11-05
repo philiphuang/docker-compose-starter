@@ -1,0 +1,3 @@
+#!/bin/bash
+CONTAINER_LIST_TEXT="${CONTAINER_LIST_TEXT}
+flame"
