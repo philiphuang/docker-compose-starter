@@ -1,18 +1,18 @@
 #!/bin/bash
 DEFAULT_CONTAINER_LIST_TEXT="请选择对那个应用进行操作，请输入数字："
-
-DEFAULT_ACTION_LIST_TEXT="请选择要进行的操作，请输入小写英文字母：
-全部容器的启动、关闭、重启
-单个容器的启动、关闭、重启
-查看容器的日志
-进入容器的shell
-进入mysql的命令行
-容器的状态、启动时间、IP、端口、镜像名称
-重启本脚本
-"
-ALLOW_ROOT=false
-
-NETWORK_LIST=""
+DEFAULT_ACTION_LIST_TEXT="请选择要进行的操作，请输入小写英文字母："
+DEFAULT_ACTION_LIST="全部容器的启动、关闭、重启 restartWholeService
+单个容器的启动、关闭、重启 restartSingleService
+查看容器的日志 showLogs
+进入容器的shell enterShell
+进入mysql的命令行 enterMySQLShell
+容器的状态、启动时间、IP、端口、镜像名称 showAllContainer
+重启本脚本 reloadAllScript"
+declare ALLOW_ROOT=false
+declare subModules
+declare GLOBAL_NETWORK
+declare CONTAINER_LIST_TEXT
+declare ACTION_LIST_TEXT
 
 green(){
     echo -e "\033[32m$1\033[0m"
@@ -21,36 +21,6 @@ green(){
 red(){
     echo -e "\033[31m$1\033[0m"
 }
-
-func1(){
-    restartWholeService
-}
-
-func2(){
-    restartSingleService
-}
-
-func3(){
-    showLogs
-}
-
-func4(){
-    enterShell
-}
-
-func5(){
-    enterMySQLShell
-}
-
-func6(){
-    showAllContainer
-}
-
-func7(){
-    red "重新载入所有Shell脚本"
-    $(basename $0) && exit 255
-}
-# ===========以下代码不需要修改
 
 # 整个服务的启动、关闭、重启
 restartWholeService(){
@@ -91,7 +61,7 @@ restartSingleService(){
 showLogs(){
         dockerResult=$(select_docker)
         if [ -n "${dockerResult}" ]; then
-            $DCC_COMMAND logs -f --tail 300 ${dockerResult}
+            $DCC_COMMAND logs -f --tail 300 "${dockerResult}"
         fi
 }
 
@@ -112,7 +82,7 @@ enterShell(){
 enterMySQLShell(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
     # docker中mysql容器查询时中文乱码解决方法 https://blog.csdn.net/weixin_44760538/article/details/106901383
-    if [[ true = $CONNECT_MYSQL_AS_ROOT ]]; then
+    if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
         docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}"
     else
         docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}"
@@ -122,12 +92,12 @@ enterMySQLShell(){
 # 执行mysql的命令行，参数：数据库，SQL命令
 execSQL(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
-    if [[ true = $CONNECT_MYSQL_AS_ROOT ]]; then
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" ${1} <<EOF
+    if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
+        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${1}" <<EOF
         $2
 EOF
     else
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" ${1} <<EOF
+        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${1}" <<EOF
         $2
 EOF
     fi
@@ -142,9 +112,9 @@ showAllContainer(){
         red "没有容器运行"
     else
         echo "$result"
-        if [[ true = $REPORT_MEMORY_USAGE ]]; then
+        if [[ true = ${REPORT_MEMORY_USAGE} ]]; then
             echo
-            docker stats  --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $($DCC_COMMAND ps -q)
+            docker stats  --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(${DCC_COMMAND} ps -q)
         fi
         echo
         echo "进程ID     容器名称     IP"
@@ -161,7 +131,6 @@ showAllContainer(){
 # Example:
 #    choice=$(menuSelect 'one' 'two' 'three')
 selectWithDefault() {
-
     local item i=0 numItems=$#
     declare -a indec
     indec=({a..z})
@@ -191,7 +160,7 @@ selectWithDefault() {
 # 参数 ActionList：选择项，自动加上abc
 selectByIndex() {
     declare -a options
-    options=($(awk '{print $1}' <<< "$1") "返回上级菜单或退出")
+    options=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$1") "返回上级菜单或退出")
     index=$(selectWithDefault "${options[@]}")
 
     (( index == $((${#options[@]}-1)) )) && index=0
@@ -200,7 +169,7 @@ selectByIndex() {
 
 selectByContent() {
     declare -a options
-    options=($(awk '{print $1}' <<< "$1") "返回上级菜单或退出")
+    options=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$1") "返回上级菜单或退出")
     index=$(selectWithDefault "${options[@]}")
 
     result=${options[$index]}
@@ -210,7 +179,7 @@ selectByContent() {
 
 select_docker(){
     result=$(selectByContent "${CONTAINER_LIST_TEXT}")
-    echo $result
+    echo "$result"
 }
 
 # Will wait for this interval, then run default action
@@ -224,18 +193,27 @@ createGlobalNetwork(){
             echo -n
         else
             echo "新建全局网络：${nw} ，ID为:"
-            docker network create $nw
+            docker network create "${nw}"
         fi
     done
 }
 
 # 加载子模块的代码
 laodSubModules(){
-    for dir in ${1}; do
+    for dir in "${@}"; do
+        [[ -f $dir/.env ]] && source "$dir"/.env
         [[ -f $dir/docker-compose.yml ]] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
-        [[ -f $dir/.env ]] && source $dir/.env
-        [[ -f $dir/run.sh ]] && source $dir/run.sh
+        [[ -f $dir/run.sh ]] && source "$dir"/run.sh
+
+        CONTAINER_LIST_TEXT="${CONTAINER_LIST_TEXT} ${CONTAINER_LIST}"
+        ACTION_LIST_TEXT="${ACTION_LIST_TEXT} ${ACTION_LIST}"
     done
+}
+
+# 参考：https://askubuntu.com/questions/356800/how-to-completely-restart-script-from-inside-the-script-itself
+reloadAllScript(){
+    red "重新载入所有Shell脚本"
+    exec $(basename "$0") && exit 255
 }
 
 go(){
@@ -245,19 +223,33 @@ go(){
         return
     fi
 
-    cd "${APP_PATH}"
-    laodSubModules "$subModules"
+    # 加载子模块
+    laodSubModules "${subModules}"
+    CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT} ${CONTAINER_LIST_TEXT}"
+    ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST} ${ACTION_LIST_TEXT}"
+
+    ACTION_LIST="${DEFAULT_ACTION_LIST_TEXT}"
+    FUNC_ARRAY=()
+    # 使用 awk 将长字符串切分为数组，跳过重复的空格和换行
+    Input_Array=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$ACTION_LIST_TEXT"))
+
+    for ((i=0; i<${#Input_Array[@]}; i++)); do
+    if [[ $((i % 2)) -eq 0 ]]; then
+        # 如果是偶数序列，将元素加入ACTION_LIST字符串
+        ACTION_LIST="${ACTION_LIST} ${Input_Array[i]}"
+    else
+        # 如果是奇数序列，将元素加入FUNC_ARRAY数组
+        FUNC_ARRAY+=("${Input_Array[i]}")
+    fi
+    done
 
     while true; do
-        result=$(selectByIndex "${ACTION_LIST_TEXT}")
-        fn_name="func${result}"
+        result=$(selectByIndex "${ACTION_LIST}")
 
         case "$result" in
             0 ) red "程序已退出。";break;;
-            # 参考：https://askubuntu.com/questions/356800/how-to-completely-restart-script-from-inside-the-script-itself
-            7 ) red "重新载入所有Shell脚本"; exec $(basename $0) && exit 255;;
             "" ) continue;;
-            * ) declare -pF | grep -q "$fn_name" && ${fn_name};;
+            * ) fn_name=${FUNC_ARRAY[$((result-1))]}; declare -pF | grep -q "$fn_name" && ${fn_name};;
         esac
     done
 }
