@@ -4,8 +4,8 @@ APP_PATH=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
 source "${APP_PATH}/launcher/default.sh"
 source "${APP_PATH}/.env"
 
-DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 ########## 以下是可修改的内容 ##########
+DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f docker-compose.yml"
 
 # 加载子模块
 subModules="prj-dashboard"

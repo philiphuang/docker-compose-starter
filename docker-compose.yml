@@ -7,6 +7,7 @@ services:
     container_name: ${PROJECT_NAME}-nginx
     volumes:
     # 默认配置
+      - ./config/certs:/etc/nginx/certs
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./config/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
     # 本项目的配置
@@ -82,7 +83,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - mysql_volume:/var/lib/mysql
+      - mysql_app_volume:/var/lib/mysql
       - ./config/mysql_app_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
       - ./config/mysql_app_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
     logging:
@@ -93,7 +94,7 @@ services:
         max-file: "50"
     networks:
       default:
-        ipv4_address: ${IP_RANGE}.2
+        ipv4_address: ${IP_RANGE}.200
 
   mysql-user:
     image: mysql:8
@@ -104,7 +105,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - mysql_volume:/var/lib/mysql
+      - mysql_user_volume:/var/lib/mysql
       - ./config/mysql_user_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
       - ./config/mysql_user_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
     logging:
@@ -166,9 +167,8 @@ services:
 
 volumes:
   cache_volume:
-    external: false
-  mysql_volume:
-    external: false
+  mysql_app_volume:
+  mysql_user_volume:
 
 networks:
   frontend_network:

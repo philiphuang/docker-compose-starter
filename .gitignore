@@ -6,5 +6,5 @@ Thumbs.db
 logs/
 data/
 temp/
-
+config/certs
 # 频繁更新的代码
