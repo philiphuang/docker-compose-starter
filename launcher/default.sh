@@ -208,9 +208,22 @@ laodSubModules(){
     for dir in ${@}; do
         CONTAINER_LIST=""
         ACTION_LIST=""
-        [[ -f $dir/.env ]] && set -o allexport;source "$dir"/.env;set +o allexport;
-        [[ -f $dir/docker-compose.yml ]] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
-        [[ -f $dir/run.sh ]] && source "$dir"/run.sh
+        if [ -f "${APP_PATH}/$dir/.env" ]; then
+            source "${APP_PATH}/$dir/.env"
+            export $(grep -v '^#' "${APP_PATH}/$dir/.env" | xargs)
+        fi
+
+        if [ -f "${APP_PATH}/$dir/docker-compose.yml" ]; then
+            DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
+        fi
+
+        if [ -f "${APP_PATH}/$dir/run.sh" ]; then
+            source "${APP_PATH}/$dir/run.sh"
+        fi
+
+        # [ -f "${APP_PATH}/$dir/.env" ] && set -o allexport;source "${APP_PATH}/$dir/.env";set +o allexport;
+        # [ -f $dir/docker-compose.yml ] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
+        # [ -f ${APP_PATH}/$dir/run.sh ] && source "${APP_PATH}/$dir/run.sh"
 
         CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
         ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
@@ -220,7 +233,9 @@ laodSubModules(){
 # 参考：https://askubuntu.com/questions/356800/how-to-completely-restart-script-from-inside-the-script-itself
 reloadAllScript(){
     red "重新载入所有Shell脚本"
-    exec $(basename "$0") && exit 255
+    # Store the current script's file path
+    script_file=$(realpath "$0")
+    exec "$script_file" && exit 255
 }
 
 go(){
