@@ -1,6 +1,6 @@
 #!/bin/bash
-DEFAULT_CONTAINER_LIST_TEXT="请选择对那个应用进行操作，请输入数字："
-DEFAULT_ACTION_LIST_TEXT="请选择要进行的操作，请输入小写英文字母："
+DEFAULT_CONTAINER_PROMPT="请选择对那个应用进行操作，请输入数字："
+DEFAULT_ACTION_PROMPT="请选择要进行的操作，请输入小写英文字母："
 DEFAULT_ACTION_LIST="全部容器的启动、关闭、重启 restartWholeService
 单个容器的启动、关闭、重启 restartSingleService
 查看容器的日志 showLogs
@@ -11,8 +11,8 @@ DEFAULT_ACTION_LIST="全部容器的启动、关闭、重启 restartWholeService
 declare ALLOW_ROOT=false
 declare subModules
 declare GLOBAL_NETWORK
-declare CONTAINER_LIST_TEXT
-declare ACTION_LIST_TEXT
+declare CONTAINER_LIST_ALL
+declare ACTION_LIST_ALL
 
 green(){
     echo -e "\033[32m$1\033[0m"
@@ -178,7 +178,7 @@ selectByContent() {
 }
 
 select_docker(){
-    result=$(selectByContent "${CONTAINER_LIST_TEXT}")
+    result=$(selectByContent "${CONTAINER_LIST_ALL}")
     echo "$result"
 }
 
@@ -200,13 +200,20 @@ createGlobalNetwork(){
 
 # 加载子模块的代码
 laodSubModules(){
-    for dir in "${@}"; do
-        [[ -f $dir/.env ]] && source "$dir"/.env
+    # 加载run.sh里面的配置
+    CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
+    ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
+
+    # $@ 不能加上双引号,否则拆分成数组不成功
+    for dir in ${@}; do
+        CONTAINER_LIST=""
+        ACTION_LIST=""
+        [[ -f $dir/.env ]] && set -o allexport;source "$dir"/.env;set +o allexport;
         [[ -f $dir/docker-compose.yml ]] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
         [[ -f $dir/run.sh ]] && source "$dir"/run.sh
 
-        CONTAINER_LIST_TEXT="${CONTAINER_LIST_TEXT} ${CONTAINER_LIST}"
-        ACTION_LIST_TEXT="${ACTION_LIST_TEXT} ${ACTION_LIST}"
+        CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
+        ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
     done
 }
 
@@ -225,13 +232,13 @@ go(){
 
     # 加载子模块
     laodSubModules "${subModules}"
-    CONTAINER_LIST_TEXT="${DEFAULT_CONTAINER_LIST_TEXT} ${CONTAINER_LIST_TEXT}"
-    ACTION_LIST_TEXT="${DEFAULT_ACTION_LIST} ${ACTION_LIST_TEXT}"
+    CONTAINER_LIST_ALL="${DEFAULT_CONTAINER_PROMPT} ${CONTAINER_LIST_ALL}"
+    ACTION_LIST_ALL="${DEFAULT_ACTION_LIST} ${ACTION_LIST_ALL}"
 
-    ACTION_LIST="${DEFAULT_ACTION_LIST_TEXT}"
+    ACTION_LIST="${DEFAULT_ACTION_PROMPT}"
     FUNC_ARRAY=()
     # 使用 awk 将长字符串切分为数组，跳过重复的空格和换行
-    Input_Array=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$ACTION_LIST_TEXT"))
+    Input_Array=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$ACTION_LIST_ALL"))
 
     for ((i=0; i<${#Input_Array[@]}; i++)); do
     if [[ $((i % 2)) -eq 0 ]]; then

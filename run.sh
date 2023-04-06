@@ -21,7 +21,7 @@ MYSQL_CONTAINER="mysql-app"
 GLOBAL_NETWORK=""
 
 # 容器名称
-CONTAINER_LIST_TEXT="
+CONTAINER_LIST="
 nginx
 mysql-app
 mysql-user
@@ -32,7 +32,7 @@ backups
 "
 
 # 操作清单，从第七项开始
-ACTION_LIST_TEXT="
+ACTION_LIST="
 备份 startBackup
 初始化配置 initConfig
 "
