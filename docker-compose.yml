@@ -36,7 +36,7 @@ services:
     container_name: ${PROJECT_NAME}-springboot
     restart: "on-failure:3"
     depends_on:
-      - mysql-user
+      - mysql-app
     environment:
       - TZ=Asia/Shanghai
     volumes:
@@ -63,7 +63,7 @@ services:
       - TOMCAT_USERNAME=${APP_ADMIN_USERNAME}
       - TOMCAT_PASSWORD=${APP_ADMIN_PASSWORD}
     depends_on:
-      - mysql-user
+      - mysql-app
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -74,14 +74,36 @@ services:
       - frontend_network
       - default
 
+  mysql-sys:
+    image: mysql:8
+    container_name: ${PROJECT_NAME}-mysql-sys
+    restart: "always"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SYS_MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${SYS_MYSQL_USER}
+      - MYSQL_PASSWORD=${SYS_MYSQL_USER_PASSWORD}
+    volumes:
+      - mysql_sys_volume:/var/lib/mysql
+      - ./config/mysql_sys_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
+      - ./config/mysql_sys_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    networks:
+      default:
+        ipv4_address: ${IP_RANGE}.200
+
   mysql-app:
     image: mysql:8
     container_name: ${PROJECT_NAME}-mysql-app
     restart: "always"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${APP_MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${APP_MYSQL_USER}
+      - MYSQL_PASSWORD=${APP_MYSQL_USER_PASSWORD}
     volumes:
       - mysql_app_volume:/var/lib/mysql
       - ./config/mysql_app_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
@@ -94,38 +116,18 @@ services:
         max-file: "50"
     networks:
       default:
-        ipv4_address: ${IP_RANGE}.200
-
-  mysql-user:
-    image: mysql:8
-    container_name: ${PROJECT_NAME}-mysql-user
-    restart: "always"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    volumes:
-      - mysql_user_volume:/var/lib/mysql
-      - ./config/mysql_user_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
-      - ./config/mysql_user_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
-    logging:
-      # limit logs retained on host to 25MB
-      driver: "json-file"
-      options:
-        max-size: "500k"
-        max-file: "50"
-    networks:
-      default:
         ipv4_address: ${IP_RANGE}.201
 
   init:
     image: philiphuang/config-injector:latest
+    # environment:
+    #   - DEBUG=1
     volumes:
       - ./.env:/.env
-      - ./config/mysql_init_template:/input/mysql_user_init
-      - ./config/mysql_init_template:/input/mysql_app_init
-      - ./config/mysql_user_init:/output/mysql_user_init
-      - ./config/mysql_app_init:/output/mysql_app_init
+      - ./config_repositry/mysql_8_init_template_sys:/input/mysql_sys_init:ro
+      - ./config_repositry/mysql_8_init_template_app:/input/mysql_app_init:roj
+      - ./config/mysql_sys_init:/output/mysql_sys_init:rw
+      - ./config/mysql_app_init:/output/mysql_app_init:rw
 
   backups:
     image: blacklabelops/volumerize:1.6
@@ -138,11 +140,11 @@ services:
       - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
       - VOLUMERIZE_FULL_IF_OLDER_THAN=3D
       - VOLUMERIZE_CONTAINERS=${PROJECT_NAME}-nginx
-      - MYSQL_USERNAME=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=${SYS_MYSQL_ROOT_PASSWORD}
+      - MYSQL_HOST=${SYS_MYSQL_HOST}
       # 多个数据库之间用空格分隔
-      - 'MYSQL_DATABASE=${MYSQL_DATABASE}'
+      - 'MYSQL_DATABASE=${SYS_MYSQL_DATABASE}'
       - MYSQL_DUMP_PATH=mysql-backup
       - DAYS_TO_KEEP_OLD_FILE=5
       - 'REMOVE_OLD_FILE_IN_DIR=/source/mysql-backup /logs/mysql'
@@ -167,8 +169,8 @@ services:
 
 volumes:
   cache_volume:
+  mysql_sys_volume:
   mysql_app_volume:
-  mysql_user_volume:
 
 networks:
   frontend_network:

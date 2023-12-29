@@ -31,13 +31,14 @@ init
 backups
 "
 
-# 操作清单，从第七项开始
+# 操作清单,格式:中文菜单 自定义函数名
 ACTION_LIST="
 备份 startBackup
 初始化配置 initConfig
+查看init的运行账号  initConfigUserID
 "
 
-# 请按数字序号添加自定义的脚本，第一个自定义脚本的序号是8
+# 自定义函数
 startBackup(){
     echo '准备开始备份，如不能马上停止服务的，请在10秒内^C'
     sleep 10
@@ -48,6 +49,10 @@ startBackup(){
 
 initConfig(){
     ${DCC_COMMAND} run init
+}
+
+initConfigUserID(){
+    ${DCC_COMMAND} run -it init sh -C whoami
 }
 
 ########## 以上是可修改的内容 ##########
