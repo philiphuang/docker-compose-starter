@@ -238,6 +238,28 @@ reloadAllScript(){
     exec "$script_file" && exit 255
 }
 
+# 设置 docker-compose 命令,如果docker版本够新,则优先使用docker compose,如果没有则采用docker-compose,如果都不存在则报错
+setupDCC_COMMANDC(){
+
+    if [ "$#" -eq 0 ]; then
+        echo "Error: Missing Docker-Compose.yaml as first argument"
+        exit 1
+    else
+        # 判断是否存在 docker compose 命令
+        if command -v docker &> /dev/null && docker compose version &> /dev/null
+        then
+            DCC_COMMAND="docker compose -p ${PROJECT_NAME} -f $1"
+        elif command -v docker-compose &> /dev/null
+        then
+            DCC_COMMAND="docker-compose -p ${PROJECT_NAME} -f $1"
+        else
+            echo "Neither docker-compose nor docker compose command is available"
+            exit 1
+        fi
+        echo "$DCC_COMMAND"
+    fi
+}
+
 go(){
     # 为安全起见，不允许root帐号运行
     if [ $ALLOW_ROOT = false ] && [ "root" = "$(whoami)" ] ; then
