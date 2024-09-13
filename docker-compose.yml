@@ -2,6 +2,8 @@ version: '2'
 
 services:
 
+# 为Docker中运行的服务自动签发证书 - 知乎 https://zhuanlan.zhihu.com/p/388007237
+# nginx-proxy/acme-companion: Automated ACME SSL certificate generation for nginx-proxy https://github.com/nginx-proxy/acme-companion
   nginx:
     image: nginx:latest
     container_name: ${PROJECT_NAME}-nginx

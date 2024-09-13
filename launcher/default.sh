@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# 定义默认提示和操作列表
 DEFAULT_CONTAINER_PROMPT="请选择对那个应用进行操作，请输入数字："
 DEFAULT_ACTION_PROMPT="请选择要进行的操作，请输入小写英文字母："
 DEFAULT_ACTION_LIST="全部容器的启动、关闭、重启 restartWholeService
@@ -7,22 +9,26 @@ DEFAULT_ACTION_LIST="全部容器的启动、关闭、重启 restartWholeService
 进入容器的shell enterShell
 进入mysql的命令行 enterMySQLShell
 容器的状态、启动时间、IP、端口、镜像名称 showAllContainer
-重启本脚本 reloadAllScript"
+重启本脚本 reload_scripts"
+
+# 声明全局变量
 declare ALLOW_ROOT=false
 declare subModules
 declare GLOBAL_NETWORK
 declare CONTAINER_LIST_ALL
 declare ACTION_LIST_ALL
 
+# 输出绿色文本
 green(){
     echo -e "\033[32m$1\033[0m"
 }
 
+# 输出红色文本
 red(){
     echo -e "\033[31m$1\033[0m"
 }
 
-# 整个服务的启动、关闭、重启
+# 重启整个服务
 restartWholeService(){
     ACTIONS="请选择要进行的操作，请输入小写英文字母：
     重启
@@ -37,7 +43,7 @@ restartWholeService(){
     esac
 }
 
-# 单个容器的启动、关闭、重启
+# 重启单个容器
 restartSingleService(){
     ACTIONS="请选择要进行的操作，请输入小写英文字母：
     重启
@@ -46,7 +52,7 @@ restartSingleService(){
     actionResult=$(selectByIndex "$ACTIONS")
 
     if [ "${actionResult}" -ne 0 ]; then
-        dockerResult=$(select_docker)
+        dockerResult=$(selectDocker)
         if [ -n "${dockerResult}" ]; then
             case $actionResult in
                 1) $DCC_COMMAND stop "${dockerResult}" && $DCC_COMMAND up -d "${dockerResult}";;
@@ -57,54 +63,54 @@ restartSingleService(){
     fi
 }
 
-# 查看容器的日志
+# 查看容器日志
 showLogs(){
-        dockerResult=$(select_docker)
-        if [ -n "${dockerResult}" ]; then
-            $DCC_COMMAND logs -f --tail 300 "${dockerResult}"
-        fi
+    dockerResult=$(selectDocker)
+    if [ -n "${dockerResult}" ]; then
+        $DCC_COMMAND logs -f --tail 300 "${dockerResult}"
+    fi
 }
 
-# 进入容器的shell
+# 进入容器shell
 enterShell(){
-        dockerResult=$(select_docker)
-        if [ -n "${dockerResult}" ]; then
-            dockerResult=$($DCC_COMMAND ps -q "${dockerResult}")
-            # 如果执行bash失败，则压制错误信息，然后执行sh
-            docker exec -it "${dockerResult}" bash 2 > /dev/null
-            if [ 0 -ne $? ]; then
-                docker exec -it "${dockerResult}" sh
-            fi
-        fi
+    dockerResult=$(selectDocker)
+    if [ -n "${dockerResult}" ]; then
+        dockerResult=$($DCC_COMMAND ps -q "${dockerResult}")
+        # 尝试执行bash，如果失败则执行sh
+        docker exec -it "${dockerResult}" bash 2> /dev/null || docker exec -it "${dockerResult}" sh
+    fi
 }
 
-# 进入mysql的命令行
+# 进入MySQL命令行
 enterMySQLShell(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
-    # docker中mysql容器查询时中文乱码解决方法 https://blog.csdn.net/weixin_44760538/article/details/106901383
-    if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
-        docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}"
+    # 解决中文乱码问题
+    if [[ true = "${CONNECT_MYSQL_AS_ROOT}" ]]; then
+        docker exec -i "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${1}" <<EOF
+        $2
+EOF
     else
-        docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}"
+        docker exec -i "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${1}" <<EOF
+        $2
+EOF
     fi
 }
 
-# 执行mysql的命令行，参数：数据库，SQL命令
+# 执行SQL命令
 execSQL(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
-    if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${1}" <<EOF
+    if [[ true = "${CONNECT_MYSQL_AS_ROOT}" ]]; then
+        docker exec -i "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${1}" <<EOF
         $2
 EOF
     else
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${1}" <<EOF
+        docker exec -i "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${1}" <<EOF
         $2
 EOF
     fi
-
 }
 
-# 查看整个服务的状态和启动时间
+# 显示所有容器状态
 showAllContainer(){
     result=$($DCC_COMMAND ps)
     # result需带双信号才保留回车
@@ -114,50 +120,68 @@ showAllContainer(){
         echo "$result"
         if [[ true = ${REPORT_MEMORY_USAGE} ]]; then
             echo
-            docker stats  --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(${DCC_COMMAND} ps -q)
+            docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(${DCC_COMMAND} ps -q)
         fi
         echo
         echo "进程ID     容器名称     IP"
         echo "------------------------------------------------------------------------------------------"
         docker inspect --format="{{ .State.Pid }}  {{.Name}} - {{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}" $($DCC_COMMAND ps -q)
     fi
-    }
+}
 
-# 参考：https://stackoverflow.com/questions/42789273/bash-choose-default-from-case-when-enter-is-pressed-in-a-select-prompt/42790075#42790075
-
-# Custom `select` implementation that allows *empty* input.
-# Pass the choices as individual arguments.
-# Output is the chosen item, or "", if the user just pressed ENTER.
-# Example:
-#    choice=$(menuSelect 'one' 'two' 'three')
+# 自定义选择函数
 selectWithDefault() {
+    # 初始化局部变量
     local item i=0 numItems=$#
+    # 声明一个数组用于存储选项的标识符
     declare -a indec
-    indec=({a..z})
+    # 使用大括号扩展创建a到z的字母数组，然后添加0到9的数字
+    indec=({a..z} {0..9})
 
     printf "\n%s\n" "=============================" >&2
-    # Print numbered menu items, based on the arguments passed.
-    for item in "${@:2}"; do         # Short for: for item in "$@"; do
+    # 遍历所有参数（除第一个参数外），打印选项
+    for item in "${@:2}"; do
+      # 使用字母或数字作为选项的标识，打印选项内容
       printf '%s ) %s\n' "${indec[$((i++))]}" "$item"
-    done >&2 # Print to stderr, as `select` does.
+      # 如果选项数量超过了可用的标识符，输出提示信息并退出循环
+      if [[ $i -ge ${#indec[@]} ]]; then
+        red "警告：选项数量超过可显示的最大数量(${#indec[@]})。部分选项未显示。" >&2
+        break
+      fi
+    done >&2
 
-    # Prompt the user for the index of the desired item.
+    # 无限循环，直到用户输入有效选项或者选择退出
     while :; do
-        printf %s "$1" >&2 # Print the prompt string to stderr, as `select` does.
+        # 打印提示信息（第一个参数）
+        printf %s "$1" >&2
+        # 读取用户输入的一个字符
         read -n1 -r index
-        # Make sure that the input is either empty or that a valid index was entered.
+        # 打印换行
         echo >&2
-        [[ -z $index ]] && break  # empty input
-        index=$((`printf "%d" "'$index"`-97+1))
-        (( index >= 1 && index <= numItems )) 2>/dev/null || { red "输入不正确，如需选择退出，请选择返回上一级." >&2; continue; }
+        # 如果用户没有输入（直接回车），则退出循环
+        [[ -z $index ]] && break
+        # 将用户输入转换为对应的数字索引
+        if [[ $index =~ [a-z] ]]; then
+            # 如果是字母，转换为1-26
+            index=$((`printf "%d" "'$index"`-96))
+        elif [[ $index =~ [0-9] ]]; then
+            # 如果是数字，转换为27-36
+            index=$((index + 26))
+        else
+            # 如果既不是字母也不是数字，视为无效输入
+            index=0
+        fi
+        # 检查输入是否在有效范围内
+        (( index >= 1 && index <= numItems && index <= ${#indec[@]} )) 2>/dev/null || { red "输入不正确，如需选择退出，请选择返回上一级." >&2; continue; }
+        # 如果输入有效，退出循环
         break
     done
 
-  # Output the selected item, if any.
+    # 如果index不为空（用户选择了有效选项），则输出index
     [[ -n $index ]] && echo "$index"
 }
 
-# 参数 ActionList：选择项，自动加上abc
+# 根据索引选择
 selectByIndex() {
     declare -a options
     options=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$1") "返回上级菜单或退出")
@@ -167,6 +191,7 @@ selectByIndex() {
     echo "$index"
 }
 
+# 根据内容选择
 selectByContent() {
     declare -a options
     options=($(awk '{for (i=1; i<=NF; i++) print $i}' <<< "$1") "返回上级菜单或退出")
@@ -177,35 +202,39 @@ selectByContent() {
     echo "$result"
 }
 
-select_docker(){
+# 选择Docker容器
+selectDocker(){
     result=$(selectByContent "${CONTAINER_LIST_ALL}")
     echo "$result"
 }
 
-# Will wait for this interval, then run default action
-# 参考：https://superuser.com/questions/161659/framework-for-interactive-shell-script-bash
-
-# 检查缺失的全局网路，并建立之
+# 创建全局网络
 createGlobalNetwork(){
+    # 遍历 GLOBAL_NETWORK 变量中定义的所有网络
     for nw in $GLOBAL_NETWORK; do
+        # 检查网络是否已存在
+        # docker network ls -q 列出所有网络的ID
+        # docker network inspect --format {{.Name}} 获取每个网络的名称
+        # grep -qi 进行不区分大小写的静默搜索
         if docker network inspect --format {{.Name}} $(docker network ls -q) | grep -qi $nw; then
-            # echo "全局网络“$nw”已存在，建于$(docker network inspect --format {{.Created}} $nw)"
+            # 如果网络已存在，不做任何操作
+            # echo -n 输出一个空字符串，实际上不产生任何输出
             echo -n
         else
+            # 如果网络不存在，创建新网络
             echo "新建全局网络：${nw} ，ID为:"
+            # 创建新的 Docker 网络并输出网络 ID
             docker network create "${nw}"
         fi
     done
 }
 
-# 加载子模块的代码
+# 加载子模块
 laodSubModules(){
-    # 加载run.sh里面的配置
     CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
     ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
 
-    # $@ 不能加上双引号,否则拆分成数组不成功
-    for dir in ${@}; do
+    for dir in "${@}"; do
         CONTAINER_LIST=""
         ACTION_LIST=""
         if [ -f "${APP_PATH}/$dir/.env" ]; then
@@ -218,29 +247,24 @@ laodSubModules(){
         fi
 
         if [ -f "${APP_PATH}/$dir/run.sh" ]; then
+            # shellcheck source=../*/run.sh
             source "${APP_PATH}/$dir/run.sh"
         fi
-
-        # [ -f "${APP_PATH}/$dir/.env" ] && set -o allexport;source "${APP_PATH}/$dir/.env";set +o allexport;
-        # [ -f $dir/docker-compose.yml ] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
-        # [ -f ${APP_PATH}/$dir/run.sh ] && source "${APP_PATH}/$dir/run.sh"
 
         CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
         ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
     done
 }
 
-# 参考：https://askubuntu.com/questions/356800/how-to-completely-restart-script-from-inside-the-script-itself
-reloadAllScript(){
+# 重新加载脚本
+reload_scripts() {
     red "重新载入所有Shell脚本"
-    # Store the current script's file path
-    script_file=$(realpath "$0")
-    exec "$script_file" && exit 255
+    exec "$(realpath "$0")" "$@"
+    exit 255
 }
 
 # 设置 docker-compose 命令,如果docker版本够新,则优先使用docker compose,如果没有则采用docker-compose,如果都不存在则报错
 setupDCC_COMMANDC(){
-
     if [ "$#" -eq 0 ]; then
         echo "Error: Missing Docker-Compose.yaml as first argument"
         exit 1
@@ -260,6 +284,7 @@ setupDCC_COMMANDC(){
     fi
 }
 
+# 主函数
 go(){
     # 为安全起见，不允许root帐号运行
     if [ $ALLOW_ROOT = false ] && [ "root" = "$(whoami)" ] ; then
