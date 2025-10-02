@@ -267,6 +267,15 @@ go(){
         return
     fi
 
+    # 验证配置安全性
+    if [ -f "${APP_PATH}/launcher/validate-config.sh" ]; then
+        source "${APP_PATH}/launcher/validate-config.sh"
+        if [ $? -ne 0 ]; then
+            red "配置验证失败，请修改 .env 文件中的密码后重试"
+            return
+        fi
+    fi
+
     # 加载子模块
     laodSubModules "${subModules}"
     CONTAINER_LIST_ALL="${DEFAULT_CONTAINER_PROMPT} ${CONTAINER_LIST_ALL}"

@@ -2,9 +2,18 @@
 Thumbs.db
 .DS_Store
 
+# 敏感配置文件 - 包含密码等敏感信息
+.env
+
 # 不需要上传的目录
 logs/
 data/
 temp/
+backup/
 config/certs
+.bmad-core/
+.cursor/
+web-bundles/
+
 # 频繁更新的代码
+#

@@ -34,7 +34,7 @@ DC-Starter是帮你运行Docker-Compose的懒人脚本，不用死背命令，�
 
     ![首次启动](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/first-start.png)
 
-    当你看到下面的文字，你已经喜提一个三层结构的应用，nginx + (tomcat，srpingboot) + mysql
+    当你看到下面的文字，你已经喜提一个三层结构的应用，nginx + (tomcat，springboot) + mysql（包含系统库 mysql-sys 和应用库 mysql-app 两个容器）
 
     ![首次启动完成](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/done-first-start.png)
 
@@ -42,7 +42,9 @@ DC-Starter是帮你运行Docker-Compose的懒人脚本，不用死背命令，�
 
     ![主页](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/home-page.png)
 
-4. 最后，关掉所有服务（交互菜单选```a``` -> ```c```），去./code目录下替换你的jar和war，重新执行第二步，你就可以把你的应用跑起来。
+### 替换你的应用
+
+关掉所有服务（交互菜单选```a``` -> ```c```），去./code目录下替换你的jar和war，重新执行第二步，你就可以把你的应用跑起来。
 
 ## 按需剪裁
 
@@ -58,19 +60,21 @@ DC-Starter对Docker-Compose的命令进行封装，已经包含基本的启动�
 
 ![主菜单](https://gitee.com/philiphuang/docker-compose-starter/raw/master/docs/main-menu.png)
 
-    a) 对所有服务执行：启动，关闭，重启
+主菜单提供以下功能：
 
-    b) 对单个服务执行：启动，关闭，重启
+    a) 对所有服务执行操作 - 进入后选择具体操作（启动、关闭、重启）
 
-    c) 查看日志
+    b) 对单个服务执行操作 - 选择容器后执行具体操作（启动、关闭、重启）
 
-    d) 进入单个容器的shell
+    c) 查看日志 - 选择容器查看实时日志
 
-    e) 进入mysql容器的mysql命令行
+    d) 进入单个容器的shell - 进入容器命令行
 
-    f) 查看服务的运行状态，包括启动时间，端口和IP等信息
+    e) 进入mysql命令行 - 直接连接到mysql-app容器的mysql命令行
 
-    g) 用户可以加入自己的脚本，例如备份，还原，可添加多个
+    f) 查看服务的运行状态 - 显示所有容器的启动时间、端口和IP等信息
+
+    g) 自定义功能菜单 - 通过ACTION_LIST添加的自定义功能（如备份、初始化配置等）
 
     h) 退出，或者返回上一级菜单
 
@@ -90,25 +94,44 @@ DC-Starter对Docker-Compose的命令进行封装，已经包含基本的启动�
  4. 可以全项目搜索"TODO"，找到需要改动的地方。
 
 ### 修改docker-compose.yml
- 1. 服务名（service name）要和CONTAINER_LIST_TEXT的值对应上。
+ 1. 服务名（service name）要和run.sh中CONTAINER_LIST变量的值对应上。
 
 ### 拷贝文件
  1. DC-Starter设计的起因是方便开发人员调试代码，因此代码不是打包在镜像里面，而是映射到容器里面；同时也预置了一些目录，对配置文件、代码进行了分离。当然，代码打包到镜像里面也是不拒绝的，而且更适合生产环境。
      1. code目录：运行代码，例如jar，war，也接受其他语言的代码，记得在docker-compose.yml文件中映射到容器里面；
      2. config目录：存放各个服务的配置文件；
-     3. mysql的配置文件位于./config/mysql_config，初始化数据目录位于./config/mysql_init，参看docker hub的mysql镜像的说明，https://hub.docker.com/__/mysql (请连接中两个下划线的一个）
+     3. mysql初始化脚本位于./config/mysql_sys_init（系统库）和./config/mysql_app_init（应用库），参看docker hub的mysql镜像的说明，https://hub.docker.com/_/mysql
      4. nginx的配置文件位于./config/nginx；
      5. data目录存放运行过程中产生的业务数据，例如mysql的文件和用户上传的文件，可统一备份此目录下的文件；
      6. logs目录存放日志，可定时清理。
 
  2. 修改run.sh
-    1. 可以在run.sh里面需要加入自定义的shell脚本，可以参考func7和func8两个函数，自定义函数从7开始自增；
+    1. 可以在run.sh里面加入自定义的菜单功能，通过ACTION_LIST变量添加，格式为"菜单文本 函数名"，例如：
+       ```bash
+       ACTION_LIST="
+       备份数据 backupData
+       初始化配置 initConfig
+       "
+       ```
+       然后实现对应的函数即可。
      2. 如果服务是由多个yml文件组成，需修改DCC_COMMAND变量；
      3. 如果需要通过不同的脚本提供不同的服务目标，你可以编写针对特定业务流程的代码，例如还原数据是低频操作，不放在run.sh里面，具体实现可参考restore.sh，运行方式是```./run.sh restore.sh```。
 
+## 子模块机制
+
+DC-Starter支持子模块化管理，可以将独立的子项目（如prj-dashboard）作为子模块动态加载：
+
+1. 在run.sh中的subModules变量里添加子模块目录名：
+   ```bash
+   subModules="prj-dashboard your-submodule"
+   ```
+2. 子模块目录需包含自己的docker-compose.yml、.env和run.sh文件
+3. 主项目的run.sh会自动合并子模块的配置（通过laodSubModules函数）
+4. 子模块的run.sh中定义CONTAINER_LIST和ACTION_LIST，会自动整合到主菜单中
+
 ## 其他说明
 
-1. 如果你需要用DC-Starter管理多个项目，一个方法是把目录复制多一份，另外一个方法是在docker-compose.yml同级建porject1、project2目录，把code，config在project1、project2都复制一份；
+1. 如果你需要用DC-Starter管理多个项目，一个方法是把目录复制多一份，另外一个方法是在docker-compose.yml同级建porject1、project2目录，把code，config在project1、project2都复制一份；也可以使用子模块机制来组织独立的子项目；
 2. config_repositry目录存放了一些常用的配置模板，如redis，可按需食用。
 
 ## 使用案例

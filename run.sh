@@ -24,8 +24,8 @@ GLOBAL_NETWORK=""
 # 容器名称
 CONTAINER_LIST="
 nginx
+mysql-sys
 mysql-app
-mysql-user
 springboot
 tomcat
 init
@@ -53,7 +53,7 @@ initConfig(){
 }
 
 initConfigUserID(){
-    ${DCC_COMMAND} run -it init sh -C whoami
+    ${DCC_COMMAND} run -it init sh -c whoami
 }
 
 ########## 以上是可修改的内容 ##########
