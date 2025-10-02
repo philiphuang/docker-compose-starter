@@ -71,9 +71,11 @@ enterShell(){
         if [ -n "${dockerResult}" ]; then
             dockerResult=$($DCC_COMMAND ps -q "${dockerResult}")
             # 如果执行bash失败，则压制错误信息，然后执行sh
-            docker exec -it "${dockerResult}" bash 2 > /dev/null
-            if [ 0 -ne $? ]; then
-                docker exec -it "${dockerResult}" sh
+            if ! docker exec -it "${dockerResult}" bash 2>/dev/null; then
+                if ! docker exec -it "${dockerResult}" sh 2>/dev/null; then
+                    red "无法进入容器 ${dockerResult} 的shell"
+                    return 1
+                fi
             fi
         fi
 }
@@ -82,22 +84,24 @@ enterShell(){
 enterMySQLShell(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
     # docker中mysql容器查询时中文乱码解决方法 https://blog.csdn.net/weixin_44760538/article/details/106901383
+    # 使用 MYSQL_PWD 环境变量传递密码，避免密码出现在进程列表中
     if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
-        docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}"
+        docker exec -it -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" "${dockerResult}" env LANG=C.UTF-8 mysql -uroot
     else
-        docker exec -it "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}"
+        docker exec -it -e MYSQL_PWD="${MYSQL_PASSWORD}" "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}"
     fi
 }
 
 # 执行mysql的命令行，参数：数据库，SQL命令
 execSQL(){
     dockerResult=$($DCC_COMMAND ps -q "${MYSQL_HOST}")
+    # 使用 MYSQL_PWD 环境变量传递密码，避免密码出现在进程列表中
     if [[ true = ${CONNECT_MYSQL_AS_ROOT} ]]; then
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" "${1}" <<EOF
+        docker exec -i -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" "${dockerResult}" env LANG=C.UTF-8 mysql -uroot "${1}" <<EOF
         $2
 EOF
     else
-        docker exec -i "${dockerResult}"  env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${1}" <<EOF
+        docker exec -i -e MYSQL_PWD="${MYSQL_PASSWORD}" "${dockerResult}" env LANG=C.UTF-8 mysql -u"${MYSQL_USER}" "${1}" <<EOF
         $2
 EOF
     fi
@@ -206,24 +210,41 @@ laodSubModules(){
 
     # $@ 不能加上双引号,否则拆分成数组不成功
     for dir in ${@}; do
+        # 检查子模块目录是否存在
+        if [ ! -d "${APP_PATH}/$dir" ]; then
+            yellow "警告: 子模块目录 '$dir' 不存在，跳过加载"
+            continue
+        fi
+
         CONTAINER_LIST=""
         ACTION_LIST=""
+
+        # 加载子模块 .env
         if [ -f "${APP_PATH}/$dir/.env" ]; then
-            source "${APP_PATH}/$dir/.env"
-            export $(grep -v '^#' "${APP_PATH}/$dir/.env" | xargs)
+            if ! source "${APP_PATH}/$dir/.env" 2>/dev/null; then
+                red "错误: 加载子模块 '$dir/.env' 失败"
+                continue
+            fi
+            export $(grep -v '^#' "${APP_PATH}/$dir/.env" | xargs) 2>/dev/null
+        else
+            yellow "警告: 子模块 '$dir' 缺少 .env 文件"
         fi
 
+        # 加载子模块 docker-compose.yml
         if [ -f "${APP_PATH}/$dir/docker-compose.yml" ]; then
             DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
+            green "✓ 加载子模块: $dir"
+        else
+            yellow "警告: 子模块 '$dir' 缺少 docker-compose.yml 文件"
         fi
 
+        # 加载子模块 run.sh
         if [ -f "${APP_PATH}/$dir/run.sh" ]; then
-            source "${APP_PATH}/$dir/run.sh"
+            if ! source "${APP_PATH}/$dir/run.sh" 2>/dev/null; then
+                red "错误: 加载子模块 '$dir/run.sh' 失败"
+                continue
+            fi
         fi
-
-        # [ -f "${APP_PATH}/$dir/.env" ] && set -o allexport;source "${APP_PATH}/$dir/.env";set +o allexport;
-        # [ -f $dir/docker-compose.yml ] && DCC_COMMAND="${DCC_COMMAND} -f $dir/docker-compose.yml"
-        # [ -f ${APP_PATH}/$dir/run.sh ] && source "${APP_PATH}/$dir/run.sh"
 
         CONTAINER_LIST_ALL="${CONTAINER_LIST_ALL} ${CONTAINER_LIST}"
         ACTION_LIST_ALL="${ACTION_LIST_ALL} ${ACTION_LIST}"
@@ -239,7 +260,7 @@ reloadAllScript(){
 }
 
 # 设置 docker-compose 命令,如果docker版本够新,则优先使用docker compose,如果没有则采用docker-compose,如果都不存在则报错
-setupDCC_COMMANDC(){
+setupDCC_COMMAND(){
 
     if [ "$#" -eq 0 ]; then
         echo "Error: Missing Docker-Compose.yaml as first argument"

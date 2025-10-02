@@ -1,9 +1,9 @@
-version: '2'
+version: '3.8'
 
 services:
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.25.3-alpine
     container_name: ${PROJECT_NAME}-nginx
     volumes:
     # 默认配置
@@ -22,6 +22,12 @@ services:
     ports:
      - 80:80
     restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -32,7 +38,8 @@ services:
       - frontend_network
 
   springboot:
-    image: java:openjdk-8-jre-alpine
+    # 使用 eclipse-temurin 替代已废弃的 java 镜像
+    image: eclipse-temurin:8-jre-alpine
     container_name: ${PROJECT_NAME}-springboot
     restart: "on-failure:3"
     depends_on:
@@ -54,7 +61,7 @@ services:
       - default
 
   tomcat:
-    image: tomcat:8-jre8-alpine
+    image: tomcat:8.5.96-jre8-temurin-jammy
     container_name: ${PROJECT_NAME}-tomcat
     volumes:
       - ./code/tomcat:/usr/local/tomcat/webapps
@@ -75,7 +82,7 @@ services:
       - default
 
   mysql-sys:
-    image: mysql:8
+    image: mysql:8.0.35
     container_name: ${PROJECT_NAME}-mysql-sys
     restart: "always"
     environment:
@@ -86,6 +93,12 @@ services:
       - mysql_sys_volume:/var/lib/mysql
       - ./config/mysql_sys_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
       - ./config/mysql_sys_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${SYS_MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -97,7 +110,7 @@ services:
         ipv4_address: ${IP_RANGE}.200
 
   mysql-app:
-    image: mysql:8
+    image: mysql:8.0.35
     container_name: ${PROJECT_NAME}-mysql-app
     restart: "always"
     environment:
@@ -108,6 +121,12 @@ services:
       - mysql_app_volume:/var/lib/mysql
       - ./config/mysql_app_init/0-createdb.sql:/docker-entrypoint-initdb.d/0-createdb.sql
       - ./config/mysql_app_init/9-grant-privileges.sql:/docker-entrypoint-initdb.d/9-grant-privileges.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${APP_MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     logging:
       # limit logs retained on host to 25MB
       driver: "json-file"
@@ -123,9 +142,9 @@ services:
     # environment:
     #   - DEBUG=1
     volumes:
-      - ./.env:/.env
+      - ./.env:/.env:ro
       - ./config_repositry/mysql_8_init_template_sys:/input/mysql_sys_init:ro
-      - ./config_repositry/mysql_8_init_template_app:/input/mysql_app_init:roj
+      - ./config_repositry/mysql_8_init_template_app:/input/mysql_app_init:ro
       - ./config/mysql_sys_init:/output/mysql_sys_init:rw
       - ./config/mysql_app_init:/output/mysql_app_init:rw
 
@@ -140,6 +159,7 @@ services:
       - VOLUMERIZE_JOBBER_TIME=* 5 2 * * *
       - VOLUMERIZE_FULL_IF_OLDER_THAN=3D
       - VOLUMERIZE_CONTAINERS=${PROJECT_NAME}-nginx
+      # MySQL 备份配置 - 通过环境变量传递凭证
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=${SYS_MYSQL_ROOT_PASSWORD}
       - MYSQL_HOST=${SYS_MYSQL_HOST}
@@ -150,7 +170,8 @@ services:
       - 'REMOVE_OLD_FILE_IN_DIR=/source/mysql-backup /logs/mysql'
     volumes:
       # [volumerize用到的目录映射]
-      - /var/run/docker.sock:/var/run/docker.sock
+      # 只读挂载 Docker Socket，限制容器逃逸风险
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - cache_volume:/volumerize-cache
       # 备份前运行的脚本
       - ./code/backups/preexecute:/preexecute

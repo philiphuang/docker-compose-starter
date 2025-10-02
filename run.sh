@@ -5,7 +5,7 @@ source "${APP_PATH}/launcher/default.sh"
 source "${APP_PATH}/.env"
 
 ########## 以下是可修改的内容 ##########
-DCC_COMMAND=$(setupDCC_COMMANDC docker-compose.yml)
+DCC_COMMAND=$(setupDCC_COMMAND docker-compose.yml)
 echo $DCC_COMMAND
 
 # 加载子模块,空格分隔
